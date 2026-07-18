@@ -22,7 +22,10 @@
       "mcp__ide__getDiagnostics",
       "Bash(pkill -f \"tsx watch src/index.ts\")",
       "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:4000/)",
-      "Bash(npx shadcn *)"
+      "Bash(npx shadcn *)",
+      "Bash(curl -s http://localhost:4000/ -H 'Content-Type: application/json' -d '{\"query\":\"query\\($s:String,$l:Int,$o:Int\\){ users\\(search:$s, limit:$l, offset:$o\\){ id name } }\",\"variables\":{\"s\":\"Abigail\",\"l\":3,\"o\":0}}')",
+      "Bash(python3 -m json.tool)",
+      "Bash(curl *)"
     ]
   }
 }

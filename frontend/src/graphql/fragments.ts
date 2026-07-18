@@ -11,6 +11,7 @@ export const BOOK_FIELDS = gql`
     formats
     averageRating
     reviewCount
+    myRating
     publisher {
       id
       name

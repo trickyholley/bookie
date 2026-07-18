@@ -1,4 +1,12 @@
+import { afterEach } from "vitest";
+import { cleanup } from "@testing-library/react";
 import "@testing-library/jest-dom/vitest";
+
+// vitest.config.ts doesn't set `test.globals: true`, so Testing Library's
+// own auto-cleanup (which detects a global `afterEach`) never registers —
+// DOM from one test would otherwise still be mounted when the next test in
+// the same file renders.
+afterEach(cleanup);
 
 // jsdom doesn't implement ResizeObserver; the shadcn Command component (used
 // by the user combobox) relies on it, so any test rendering it needs a stub.

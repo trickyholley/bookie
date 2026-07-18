@@ -11,13 +11,13 @@ import { CartProvider } from '@/context/CartContext'
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ApolloProvider client={apolloClient}>
-      <CurrentUserProvider>
-        <CartProvider>
-          <BrowserRouter>
+      <BrowserRouter>
+        <CurrentUserProvider>
+          <CartProvider>
             <App />
-          </BrowserRouter>
-        </CartProvider>
-      </CurrentUserProvider>
+          </CartProvider>
+        </CurrentUserProvider>
+      </BrowserRouter>
     </ApolloProvider>
   </StrictMode>,
 )

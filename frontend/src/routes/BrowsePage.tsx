@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { Search } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router";
+import { Loader2, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { GenreFilter } from "@/components/GenreFilter";
@@ -7,21 +8,46 @@ import { PaginationControls } from "@/components/PaginationControls";
 import { BookCard } from "@/components/BookCard";
 import { useBooksQuery } from "@/graphql/queries";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
+import { useCurrentUser } from "@/context/UserContext";
+import { setUrlParams } from "@/lib/url-params";
+import { cn } from "@/lib/utils";
 
 const PAGE_SIZE = 12;
 
 export function BrowsePage() {
-  const [search, setSearch] = useState("");
-  const [genreId, setGenreId] = useState<string | undefined>(undefined);
-  const [page, setPage] = useState(1);
+  const { userId } = useCurrentUser();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [search, setSearch] = useState(() => searchParams.get("q") ?? "");
+  const [genreId, setGenreId] = useState<string | undefined>(() => searchParams.get("genre") ?? undefined);
+  const [page, setPage] = useState(() => Number(searchParams.get("page")) || 1);
   const debouncedSearch = useDebouncedValue(search, 300);
 
-  const { data, loading, error } = useBooksQuery({
+  // Mirror the active filters into the URL (once the search box settles)
+  // so the current view is bookmarkable/shareable and survives a reload.
+  useEffect(() => {
+    setUrlParams(setSearchParams, {
+      q: debouncedSearch || null,
+      genre: genreId ?? null,
+      page: page > 1 ? String(page) : null,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch, genreId, page]);
+
+  const { data, previousData, loading, error } = useBooksQuery({
     search: debouncedSearch || undefined,
     genreId,
     page,
     pageSize: PAGE_SIZE,
+    userId: userId ?? undefined,
   });
+
+  // Fall back to the previous page's data while a new search/genre/page
+  // fetch is in flight, so the grid stays populated (dimmed, not blanked)
+  // instead of flashing empty and re-mounting with skeletons every time a
+  // filter changes.
+  const books = data?.books ?? previousData?.books;
+  const isInitialLoad = loading && !books;
+  const isRefetching = loading && !!books;
 
   function resetToFirstPage() {
     setPage(1);
@@ -49,31 +75,39 @@ export function BrowsePage() {
             resetToFirstPage();
           }}
         />
-        {data && (
-          <span className="text-muted-foreground ml-auto text-sm">{data.books.totalCount} books</span>
+        {books && (
+          <span className="text-muted-foreground ml-auto flex items-center gap-2 text-sm">
+            {isRefetching && <Loader2 className="size-3.5 animate-spin" />}
+            {books.totalCount} books
+          </span>
         )}
       </div>
 
       {error && <p className="text-destructive text-sm">Failed to load books: {error.message}</p>}
 
-      {loading && !data ? (
+      {isInitialLoad ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {Array.from({ length: PAGE_SIZE }).map((_, i) => (
             <Skeleton key={i} className="h-64 rounded-xl" />
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {data?.books.items.map((book) => <BookCard key={book.id} book={book} />)}
+        <div
+          className={cn(
+            "grid grid-cols-1 gap-4 transition-opacity duration-150 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4",
+            isRefetching && "pointer-events-none opacity-50",
+          )}
+        >
+          {books?.items.map((book) => <BookCard key={book.id} book={book} />)}
         </div>
       )}
 
-      {data && data.books.items.length === 0 && !loading && (
+      {books && books.items.length === 0 && !loading && (
         <p className="text-muted-foreground text-center text-sm">No books match your search.</p>
       )}
 
-      {data && (
-        <PaginationControls page={data.books.page} totalPages={data.books.totalPages} onPageChange={setPage} />
+      {books && (
+        <PaginationControls page={books.page} totalPages={books.totalPages} onPageChange={setPage} />
       )}
     </div>
   );

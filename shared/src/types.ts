@@ -33,6 +33,7 @@ export interface Book {
   genres: Genre[];
   averageRating: number | null;
   reviewCount: number;
+  myRating: number | null;
 }
 
 export interface BookListPage {
@@ -64,6 +65,15 @@ export interface Order {
   createdAt: string;
   items: OrderItem[];
   total: number;
+  user: User;
+}
+
+export interface OrderListPage {
+  items: Order[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
 }
 
 export interface GenreReportRow {
@@ -87,15 +97,22 @@ export interface BooksQueryArgs {
   genreId?: string;
   page?: number;
   pageSize?: number;
+  userId?: string;
 }
 
 export interface UsersQueryArgs {
   search?: string;
   limit?: number;
+  offset?: number;
 }
 
 export interface OrdersQueryArgs {
   userId: string;
+}
+
+export interface RecentOrdersQueryArgs {
+  page?: number;
+  pageSize?: number;
 }
 
 export interface SubmitReviewArgs {
@@ -126,6 +143,10 @@ export interface UsersQueryData {
 
 export interface OrdersQueryData {
   orders: Order[];
+}
+
+export interface RecentOrdersQueryData {
+  recentOrders: OrderListPage;
 }
 
 export interface ReportQueryData {

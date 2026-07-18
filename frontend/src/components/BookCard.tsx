@@ -41,16 +41,13 @@ export function BookCard({ book }: BookCardProps) {
 
   async function handleRate(rating: number) {
     if (!userId) return;
+    const isEdit = book.myRating != null;
     setReviewMessage(null);
     try {
       await submitReview({ variables: { bookId: book.id, userId, rating } });
-      setReviewMessage("Thanks for your review!");
-    } catch (error) {
-      setReviewMessage(
-        error instanceof Error && error.message.includes("already reviewed")
-          ? "You've already reviewed this book."
-          : "Couldn't submit your review.",
-      );
+      setReviewMessage(isEdit ? "Rating updated!" : "Thanks for your review!");
+    } catch {
+      setReviewMessage("Couldn't submit your review.");
     }
   }
 
@@ -80,19 +77,33 @@ export function BookCard({ book }: BookCardProps) {
           </span>
         </div>
 
-        <div className="flex items-center gap-1 pt-1">
-          {[1, 2, 3, 4, 5].map((rating) => (
-            <button
-              key={rating}
-              type="button"
-              disabled={!userId || reviewLoading}
-              onClick={() => handleRate(rating)}
-              title={`Rate ${rating} star${rating > 1 ? "s" : ""}`}
-              className="disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              <Star className="text-muted-foreground hover:text-foreground size-4 transition-colors" />
-            </button>
-          ))}
+        <div className="flex items-center gap-1.5 pt-1">
+          <span className="text-muted-foreground text-xs">{book.myRating ? "My rating" : "Leave a rating?"}</span>
+          <div className="flex items-center gap-1">
+            {[1, 2, 3, 4, 5].map((rating) => (
+              <button
+                key={rating}
+                type="button"
+                disabled={!userId || reviewLoading}
+                onClick={() => handleRate(rating)}
+                title={
+                  book.myRating
+                    ? `Change your rating to ${rating} star${rating > 1 ? "s" : ""}`
+                    : `Rate ${rating} star${rating > 1 ? "s" : ""}`
+                }
+                className="disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <Star
+                  className={cn(
+                    "size-4 transition-colors",
+                    book.myRating && rating <= book.myRating
+                      ? "fill-current text-yellow-500 hover:text-yellow-600"
+                      : "text-muted-foreground hover:text-foreground",
+                  )}
+                />
+              </button>
+            ))}
+          </div>
           {reviewMessage && <span className="text-muted-foreground ml-1 text-xs">{reviewMessage}</span>}
         </div>
       </CardContent>
@@ -100,7 +111,7 @@ export function BookCard({ book }: BookCardProps) {
       <CardFooter className="flex items-center gap-2">
         <Select value={format} onValueChange={(value) => setFormat(value as Format)}>
           <SelectTrigger className="w-[9.5rem]" size="sm">
-            <SelectValue />
+            <SelectValue>{(value: Format) => FORMAT_LABELS[value]}</SelectValue>
           </SelectTrigger>
           <SelectContent>
             {book.formats.map((f) => (

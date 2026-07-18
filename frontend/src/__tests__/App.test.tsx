@@ -10,13 +10,13 @@ describe("App shell", () => {
   it("renders navigation to all three required views", () => {
     render(
       <MockedProvider>
-        <CurrentUserProvider>
-          <CartProvider>
-            <MemoryRouter>
+        <MemoryRouter>
+          <CurrentUserProvider>
+            <CartProvider>
               <App />
-            </MemoryRouter>
-          </CartProvider>
-        </CurrentUserProvider>
+            </CartProvider>
+          </CurrentUserProvider>
+        </MemoryRouter>
       </MockedProvider>,
     );
 

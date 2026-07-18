@@ -4,15 +4,28 @@ import { OrdersPage } from "@/routes/OrdersPage";
 import { ReportPage } from "@/routes/ReportPage";
 import { UserCombobox } from "@/components/UserCombobox";
 import { CartDrawer } from "@/components/CartDrawer";
+import { MobileNav } from "@/components/MobileNav";
+import { cn } from "@/lib/utils";
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
-  isActive ? "font-semibold" : "text-muted-foreground";
+  cn(
+    "rounded-full px-3 py-1 text-sm font-medium transition-colors",
+    isActive ? "bg-secondary text-secondary-foreground" : "text-muted-foreground hover:text-foreground",
+  );
 
 function App() {
   return (
     <div className="min-h-screen">
-      <header className="flex items-center justify-between gap-4 border-b px-6 py-4">
-        <nav className="flex gap-4">
+      <header className="flex items-center gap-2 border-b px-4 py-4 sm:gap-4 sm:px-6">
+        <NavLink
+          to="/"
+          end
+          className="border-accent-foreground/40 flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-xl"
+        >
+          <span aria-hidden="true">📖</span>
+          <span className="font-logo text-accent-foreground font-semibold tracking-tight">Bookie</span>
+        </NavLink>
+        <nav className="ml-4 hidden gap-1 md:ml-8 md:flex">
           <NavLink to="/" end className={navLinkClass}>
             Browse
           </NavLink>
@@ -23,7 +36,10 @@ function App() {
             Report
           </NavLink>
         </nav>
-        <div className="flex items-center gap-2">
+        <div className="md:hidden">
+          <MobileNav />
+        </div>
+        <div className="ml-auto flex min-w-0 items-center gap-2">
           <UserCombobox />
           <CartDrawer />
         </div>

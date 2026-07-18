@@ -58,7 +58,7 @@ export function CartDrawer() {
     >
       <SheetTrigger render={<Button variant="outline" className="relative" />}>
         <ShoppingCart className="size-4" />
-        Cart
+        <span className="hidden sm:inline">Cart</span>
         {itemCount > 0 && (
           <Badge className="absolute -top-2 -right-2 h-5 min-w-5 justify-center rounded-full px-1">
             {itemCount}

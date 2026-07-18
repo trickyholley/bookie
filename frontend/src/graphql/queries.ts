@@ -7,6 +7,8 @@ import type {
   GenresQueryData,
   OrdersQueryArgs,
   OrdersQueryData,
+  RecentOrdersQueryArgs,
+  RecentOrdersQueryData,
   ReportQueryData,
   UsersQueryArgs,
   UsersQueryData,
@@ -18,8 +20,8 @@ import { BOOK_FIELDS } from "@/graphql/fragments";
 // useQuery is deprecated in Apollo Client v4.
 export const BOOKS_QUERY: TypedDocumentNode<BooksQueryData, BooksQueryArgs> = gql`
   ${BOOK_FIELDS}
-  query Books($search: String, $genreId: ID, $page: Int, $pageSize: Int) {
-    books(search: $search, genreId: $genreId, page: $page, pageSize: $pageSize) {
+  query Books($search: String, $genreId: ID, $page: Int, $pageSize: Int, $userId: ID) {
+    books(search: $search, genreId: $genreId, page: $page, pageSize: $pageSize, userId: $userId) {
       items {
         ...BookFields
       }
@@ -49,8 +51,8 @@ export function useGenresQuery() {
 }
 
 export const USERS_QUERY: TypedDocumentNode<UsersQueryData, UsersQueryArgs> = gql`
-  query Users($search: String, $limit: Int) {
-    users(search: $search, limit: $limit) {
+  query Users($search: String, $limit: Int, $offset: Int) {
+    users(search: $search, limit: $limit, offset: $offset) {
       id
       name
     }
@@ -85,6 +87,40 @@ export function useOrdersQuery(variables: OrdersQueryArgs) {
   // Order history should reflect a checkout that just happened elsewhere in
   // the app rather than show a stale cached list, so always hit the network.
   return useQuery(ORDERS_QUERY, { variables, fetchPolicy: "cache-and-network" });
+}
+
+export const RECENT_ORDERS_QUERY: TypedDocumentNode<RecentOrdersQueryData, RecentOrdersQueryArgs> = gql`
+  ${BOOK_FIELDS}
+  query RecentOrders($page: Int, $pageSize: Int) {
+    recentOrders(page: $page, pageSize: $pageSize) {
+      items {
+        id
+        createdAt
+        total
+        user {
+          id
+          name
+        }
+        items {
+          id
+          format
+          quantity
+          unitPrice
+          book {
+            ...BookFields
+          }
+        }
+      }
+      totalCount
+      page
+      pageSize
+      totalPages
+    }
+  }
+`;
+
+export function useRecentOrdersQuery(variables: RecentOrdersQueryArgs) {
+  return useQuery(RECENT_ORDERS_QUERY, { variables, fetchPolicy: "cache-and-network" });
 }
 
 export const REPORT_QUERY: TypedDocumentNode<ReportQueryData, Record<string, never>> = gql`

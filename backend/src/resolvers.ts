@@ -3,6 +3,7 @@ import type {
   BooksQueryArgs,
   CheckoutArgs,
   OrdersQueryArgs,
+  RecentOrdersQueryArgs,
   SubmitReviewArgs,
   UsersQueryArgs,
 } from "@bookie/shared";
@@ -41,7 +42,27 @@ async function loadRatings(
   );
 }
 
-function toBookDTO(book: BookWithRelations, ratings: Map<string, RatingSummary>) {
+// Same batching idea as loadRatings, but scoped to a single user's own
+// reviews so the UI can pre-fill "your rating" without an extra round trip
+// per book.
+async function loadMyRatings(
+  prisma: GraphQLContext["prisma"],
+  userId: string | undefined,
+  bookIds: string[],
+): Promise<Map<string, number>> {
+  if (!userId || bookIds.length === 0) return new Map();
+  const reviews = await prisma.review.findMany({
+    where: { userId, bookId: { in: bookIds } },
+    select: { bookId: true, rating: true },
+  });
+  return new Map(reviews.map((review) => [review.bookId, review.rating]));
+}
+
+function toBookDTO(
+  book: BookWithRelations,
+  ratings: Map<string, RatingSummary>,
+  myRatings: Map<string, number> = new Map(),
+) {
   const rating = ratings.get(book.id);
   return {
     id: book.id,
@@ -53,6 +74,7 @@ function toBookDTO(book: BookWithRelations, ratings: Map<string, RatingSummary>)
     genres: book.genres.map((bookGenre) => bookGenre.genre),
     averageRating: rating?.average ?? null,
     reviewCount: rating?.count ?? 0,
+    myRating: myRatings.get(book.id) ?? null,
   };
 }
 
@@ -102,13 +124,14 @@ export const resolvers = {
         }),
       ]);
 
-      const ratings = await loadRatings(
-        ctx.prisma,
-        books.map((book) => book.id),
-      );
+      const bookIds = books.map((book) => book.id);
+      const [ratings, myRatings] = await Promise.all([
+        loadRatings(ctx.prisma, bookIds),
+        loadMyRatings(ctx.prisma, args.userId, bookIds),
+      ]);
 
       return {
-        items: books.map((book) => toBookDTO(book, ratings)),
+        items: books.map((book) => toBookDTO(book, ratings, myRatings)),
         totalCount,
         page,
         pageSize,
@@ -123,6 +146,7 @@ export const resolvers = {
       ctx.prisma.user.findMany({
         where: args.search ? { name: { contains: args.search, mode: "insensitive" } } : {},
         orderBy: { name: "asc" },
+        skip: args.offset ?? 0,
         take: args.limit ?? 20,
       }),
 
@@ -130,16 +154,19 @@ export const resolvers = {
       const orders = await ctx.prisma.order.findMany({
         where: { userId: args.userId },
         orderBy: { createdAt: "desc" },
-        include: { items: { include: { book: { include: bookInclude } } } },
+        include: { user: true, items: { include: { book: { include: bookInclude } } } },
       });
 
       const bookIds = [...new Set(orders.flatMap((order) => order.items.map((item) => item.bookId)))];
-      const ratings = await loadRatings(ctx.prisma, bookIds);
+      const [ratings, myRatings] = await Promise.all([
+        loadRatings(ctx.prisma, bookIds),
+        loadMyRatings(ctx.prisma, args.userId, bookIds),
+      ]);
 
       return orders.map((order) => {
         const items = order.items.map((item) => ({
           id: item.id,
-          book: toBookDTO(item.book, ratings),
+          book: toBookDTO(item.book, ratings, myRatings),
           format: item.format,
           quantity: item.quantity,
           unitPrice: Number(item.unitPrice),
@@ -149,8 +176,52 @@ export const resolvers = {
           createdAt: order.createdAt.toISOString(),
           items,
           total: orderTotal(items),
+          user: order.user,
         };
       });
+    },
+
+    // Unlike `orders`, this spans every user (for the Report page's activity
+    // feed), so it's paginated like `books` rather than returning everything.
+    recentOrders: async (_parent: unknown, args: RecentOrdersQueryArgs, ctx: GraphQLContext) => {
+      const page = args.page ?? 1;
+      const pageSize = args.pageSize ?? 10;
+
+      const [totalCount, orders] = await Promise.all([
+        ctx.prisma.order.count(),
+        ctx.prisma.order.findMany({
+          orderBy: { createdAt: "desc" },
+          skip: (page - 1) * pageSize,
+          take: pageSize,
+          include: { user: true, items: { include: { book: { include: bookInclude } } } },
+        }),
+      ]);
+
+      const bookIds = [...new Set(orders.flatMap((order) => order.items.map((item) => item.bookId)))];
+      const ratings = await loadRatings(ctx.prisma, bookIds);
+
+      return {
+        items: orders.map((order) => {
+          const items = order.items.map((item) => ({
+            id: item.id,
+            book: toBookDTO(item.book, ratings),
+            format: item.format,
+            quantity: item.quantity,
+            unitPrice: Number(item.unitPrice),
+          }));
+          return {
+            id: order.id,
+            createdAt: order.createdAt.toISOString(),
+            items,
+            total: orderTotal(items),
+            user: order.user,
+          };
+        }),
+        totalCount,
+        page,
+        pageSize,
+        totalPages: pageSize > 0 ? Math.ceil(totalCount / pageSize) : 0,
+      };
     },
 
     report: async (_parent: unknown, _args: unknown, ctx: GraphQLContext) => {
@@ -183,25 +254,22 @@ export const resolvers = {
     submitReview: async (_parent: unknown, args: SubmitReviewArgs, ctx: GraphQLContext) => {
       assertValidRating(args.rating);
 
-      let review;
-      try {
-        review = await ctx.prisma.review.create({
-          data: { bookId: args.bookId, userId: args.userId, rating: args.rating },
-          include: { book: { include: bookInclude }, user: true },
-        });
-      } catch (error) {
-        if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
-          throw new GraphQLError("this user has already reviewed this book", {
-            extensions: { code: "ALREADY_REVIEWED" },
-          });
-        }
-        throw error;
-      }
+      // A user revisiting a book they've already rated should be able to
+      // change their mind rather than being blocked outright — upsert on the
+      // (bookId, userId) unique constraint updates the existing rating in
+      // place instead of rejecting the second submission.
+      const review = await ctx.prisma.review.upsert({
+        where: { bookId_userId: { bookId: args.bookId, userId: args.userId } },
+        create: { bookId: args.bookId, userId: args.userId, rating: args.rating },
+        update: { rating: args.rating },
+        include: { book: { include: bookInclude }, user: true },
+      });
 
       const ratings = await loadRatings(ctx.prisma, [review.bookId]);
+      const myRatings = new Map([[review.bookId, review.rating]]);
       return {
         id: review.id,
-        book: toBookDTO(review.book, ratings),
+        book: toBookDTO(review.book, ratings, myRatings),
         user: review.user,
         rating: review.rating,
         createdAt: review.createdAt.toISOString(),
@@ -253,16 +321,17 @@ export const resolvers = {
 
       const order = await ctx.prisma.order.findUniqueOrThrow({
         where: { id: orderId },
-        include: { items: { include: { book: { include: bookInclude } } } },
+        include: { user: true, items: { include: { book: { include: bookInclude } } } },
       });
-      const ratings = await loadRatings(
-        ctx.prisma,
-        order.items.map((item) => item.bookId),
-      );
+      const orderBookIds = order.items.map((item) => item.bookId);
+      const [ratings, myRatings] = await Promise.all([
+        loadRatings(ctx.prisma, orderBookIds),
+        loadMyRatings(ctx.prisma, args.userId, orderBookIds),
+      ]);
 
       const items = order.items.map((item) => ({
         id: item.id,
-        book: toBookDTO(item.book, ratings),
+        book: toBookDTO(item.book, ratings, myRatings),
         format: item.format,
         quantity: item.quantity,
         unitPrice: Number(item.unitPrice),
@@ -273,6 +342,7 @@ export const resolvers = {
         createdAt: order.createdAt.toISOString(),
         items,
         total: orderTotal(items),
+        user: order.user,
       };
     },
   },

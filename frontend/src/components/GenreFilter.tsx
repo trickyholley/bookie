@@ -18,7 +18,11 @@ export function GenreFilter({ genreId, onChange }: GenreFilterProps) {
       onValueChange={(value) => onChange(!value || value === ALL_GENRES ? undefined : value)}
     >
       <SelectTrigger className="w-44">
-        <SelectValue placeholder="All genres" />
+        <SelectValue placeholder="All genres">
+          {(value: string) =>
+            value === ALL_GENRES ? "All genres" : (genres.find((genre) => genre.id === value)?.name ?? "All genres")
+          }
+        </SelectValue>
       </SelectTrigger>
       <SelectContent>
         <SelectItem value={ALL_GENRES}>All genres</SelectItem>
