@@ -4,6 +4,8 @@ A minimal web-based bookstore built for the Senior Node/React Engineering Assign
 
 **Stack:** Node.js, Apollo Server (GraphQL), Prisma + Postgres on the backend; Vite, React 19, Apollo Client, Tailwind + shadcn/ui, react-router on the frontend. Vitest + Testing Library for tests in both workspaces.
 
+<img width="3732" height="1873" alt="image" src="https://github.com/user-attachments/assets/d3901ce0-ee41-4fea-a520-ae9e3c5cdc5b" />
+
 ---
 
 ## Setup Instructions
