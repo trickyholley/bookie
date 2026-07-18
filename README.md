@@ -8,7 +8,13 @@ A minimal web-based bookstore built for the Senior Node/React Engineering Assign
 
 ## Setup Instructions
 
-Prerequisites: Node 22+, Docker (for Postgres).
+### Prerequisites
+- Node.js 22+
+- Docker
+  - **Mac:** [Docker Desktop](https://www.docker.com/products/docker-desktop/) — works out of the box
+  - **Linux:** ensure `docker` runs without `sudo` (see the
+    [post-install guide](https://docs.docker.com/engine/install/linux-postinstall/))
+
 
 ```bash
 # 1. Install dependencies for all three workspaces (frontend, backend, shared)
