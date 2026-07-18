@@ -108,3 +108,34 @@ export interface CheckoutArgs {
   userId: string;
   items: CheckoutItemInput[];
 }
+
+// Response shapes for each Query/Mutation root field, i.e. what a GraphQL
+// operation's `data` looks like — paired with the *Args types above as
+// (data, variables) generics for the frontend's Apollo hooks.
+export interface BooksQueryData {
+  books: BookListPage;
+}
+
+export interface GenresQueryData {
+  genres: Genre[];
+}
+
+export interface UsersQueryData {
+  users: User[];
+}
+
+export interface OrdersQueryData {
+  orders: Order[];
+}
+
+export interface ReportQueryData {
+  report: Report;
+}
+
+export interface SubmitReviewData {
+  submitReview: Review;
+}
+
+export interface CheckoutData {
+  checkout: Order;
+}

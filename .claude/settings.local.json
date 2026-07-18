@@ -21,7 +21,8 @@
       "Bash(npm test *)",
       "mcp__ide__getDiagnostics",
       "Bash(pkill -f \"tsx watch src/index.ts\")",
-      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:4000/)"
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" http://localhost:4000/)",
+      "Bash(npx shadcn *)"
     ]
   }
 }
