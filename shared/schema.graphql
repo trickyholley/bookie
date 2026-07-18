@@ -1,0 +1,98 @@
+enum Format {
+  HARDCOVER
+  SOFTCOVER
+  AUDIOBOOK
+  EREADER
+}
+
+type Author {
+  id: ID!
+  name: String!
+}
+
+type Publisher {
+  id: ID!
+  name: String!
+}
+
+type Genre {
+  id: ID!
+  name: String!
+}
+
+type User {
+  id: ID!
+  name: String!
+}
+
+type Book {
+  id: ID!
+  title: String!
+  price: Float!
+  formats: [Format!]!
+  publisher: Publisher!
+  authors: [Author!]!
+  genres: [Genre!]!
+  averageRating: Float
+  reviewCount: Int!
+}
+
+type BookListPage {
+  items: [Book!]!
+  totalCount: Int!
+  page: Int!
+  pageSize: Int!
+  totalPages: Int!
+}
+
+type Review {
+  id: ID!
+  book: Book!
+  user: User!
+  rating: Int!
+  createdAt: String!
+}
+
+type OrderItem {
+  id: ID!
+  book: Book!
+  format: Format!
+  quantity: Int!
+  unitPrice: Float!
+}
+
+type Order {
+  id: ID!
+  createdAt: String!
+  items: [OrderItem!]!
+  total: Float!
+}
+
+type GenreReportRow {
+  genre: Genre!
+  totalBooksPurchased: Int!
+}
+
+type Report {
+  totalBooksPurchased: Int!
+  byGenre: [GenreReportRow!]!
+}
+
+input CheckoutItemInput {
+  bookId: ID!
+  format: Format!
+  quantity: Int!
+}
+
+type Query {
+  books(search: String, genreId: ID, page: Int = 1, pageSize: Int = 20): BookListPage!
+  genres: [Genre!]!
+  users(search: String, limit: Int = 20): [User!]!
+  orders(userId: ID!): [Order!]!
+  report: Report!
+}
+
+type Mutation {
+  submitReview(bookId: ID!, userId: ID!, rating: Int!): Review!
+  checkout(userId: ID!, items: [CheckoutItemInput!]!): Order!
+}

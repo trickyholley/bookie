@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: bookie
+      POSTGRES_PASSWORD: bookie
+      POSTGRES_DB: bookie
+    ports:
+      - "5433:5432"
+    volumes:
+      - bookie-postgres-data:/var/lib/postgresql/data
+
+volumes:
+  bookie-postgres-data:

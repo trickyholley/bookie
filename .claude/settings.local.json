@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install *)",
+      "Bash(node -e ' *)",
+      "Bash(npx prisma *)",
+      "Bash(node -e \"process.stdin.resume\\(\\);let d='';process.stdin.on\\('data',c=>d+=c\\);process.stdin.on\\('end',\\(\\)=>{const j=JSON.parse\\(d\\);console.log\\(j.version\\); console.log\\(j.description\\)}\\)\")",
+      "Bash(docker compose *)",
+      "Bash(timeout 8 npx tsx src/index.ts 2>&1)",
+      "Bash(npx vitest *)",
+      "Bash(npx tsx *)",
+      "Bash(npx shadcn@latest init --help)",
+      "Bash(npx shadcn@latest *)",
+      "Bash(pkill -f \"shadcn\")",
+      "Bash(npm view *)",
+      "Bash(rm -f src/App.css src/assets/hero.png src/assets/react.svg src/assets/vite.svg)",
+      "Bash(rmdir src/assets)",
+      "Bash(node *)",
+      "Bash(npx tsc *)",
+      "Bash(npm run *)",
+      "Bash(npm test *)",
+      "mcp__ide__getDiagnostics"
+    ]
+  }
+}
