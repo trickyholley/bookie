@@ -77,7 +77,7 @@ npm run db:down    # stop Postgres
 
 ## Two Additional Features I Chose
 1. I added search params to make URLs shareable.
-2. Arguably, I made reviews updatable, rendering separately. Could argue that was part of the spec.
+2. ~~Arguably, I made reviews updatable, rendering separately. Could argue that was part of the spec.~~ Nevermind, I misread. Well, I like this more anyways, so here's one part I would have pushed back!
 3. I made sure the mobile layout was usable.
 ---
 
